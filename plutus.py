@@ -8,7 +8,7 @@ import pickle
 import hashlib
 import binascii
 import multiprocessing
-from fastecdsa import keys, curve
+from ellipticcurve.privateKey import PrivateKey
 from message import send_telegram_message
 
 DATABASE = r'database/MAR_15_2021/'
@@ -27,12 +27,10 @@ def private_key_to_public_key(private_key):
 	Because converting a private key to a public key requires SECP256k1 ECDSA 
 	signing, this function is the most time consuming and is a bottleneck in 
 	the overall speed of the program.
-	Average Time: 0.0016401287 seconds
+	Average Time: 0.0031567731 seconds
 	"""
-	c = int('0x%s'%private_key,0)
-	d = keys.get_public_key(c, curve.secp256k1)
-	# return '04%s%s'%('{0:x}'.format(int(d.x)), '{0:x}'.format(int(d.y)))
-	return '04%s%s'%('%0x'%int(d.x), '%0x'%int(d.y))
+	pk = PrivateKey().fromString(bytes.fromhex(private_key))
+	return '04' + pk.publicKey().toString().hex().upper()
 
 def public_key_to_address(public_key):
 	"""
@@ -111,11 +109,11 @@ def main(database):
 	"""
 	while True:
 		private_key = generate_private_key()			# 0.0000061659 seconds
-		public_key = private_key_to_public_key(private_key) 	# 0.0016401287 seconds
+		public_key = private_key_to_public_key(private_key) 	# 0.0031567731 seconds
 		address = public_key_to_address(public_key)		# 0.0000801390 seconds
 		process(private_key, public_key, address, database) 	# 0.0000026941 seconds
 									# --------------------
-									# 0.0017291287 seconds
+									# 0.0032457721 seconds
 
 if __name__ == '__main__':
 	"""
