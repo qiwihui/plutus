@@ -32,7 +32,7 @@ def main():
     consumers = []
     for i in range(3):
         name = 'Consumer-{}'.format(i)
-        consumer = Thread(target=consume, args=(q, database))
+        consumer = Thread(target=check, args=(q, database))
         consumer.start()
         consumers.append(consumer)
 
