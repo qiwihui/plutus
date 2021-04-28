@@ -2,6 +2,7 @@
 # Made by Isaac Delly
 # https://github.com/Isaacdelly/Plutus
 
+import typing
 import os
 import datetime
 import pickle
@@ -115,28 +116,49 @@ def main(database):
 									# --------------------
 									# 0.0032457721 seconds
 
+def load_database(database_dir: str) -> typing.List:
+	database = [set() for _ in range(4)]
+	count = len(os.listdir(database_dir))
+	half = count // 2
+	quarter = half // 2
+	for c, p in enumerate(os.listdir(database_dir)):
+		print('\rreading database: ' + str(c + 1) + '/' + str(count), end = ' ')
+		with open(database_dir + p, 'rb') as file:
+			if c < half:
+				if c < quarter:
+					database[0] = database[0] | set(pickle.load(file))
+				else:
+					database[1] = database[1] | set(pickle.load(file))
+			else:
+				if c < half + quarter:
+					database[2] = database[2] | set(pickle.load(file))
+				else:
+					database[3] = database[3] | set(pickle.load(file))
+	return database
+
+def passphrase_to_private_key(passphrase: str):
+	sha256sum = hashlib.sha256(passphrase.encode()).hexdigest()
+	return sha256sum
+
+def passphrase_to_public_key(passphrase: str):
+	sha256sum = hashlib.sha256(passphrase.encode()).hexdigest()
+	return private_key_to_public_key(sha256sum)
+
+def passphrase_to_address(passphrase: str):
+	sha256sum = hashlib.sha256(passphrase.encode()).hexdigest()
+	public_key = public_key_to_address(private_key_to_public_key(sha256sum))
+	return public_key
+
+
 if __name__ == '__main__':
 	"""
 	Deserialize the database and read into a list of sets for easier selection 
 	and O(1) complexity. Initialize the multiprocessing to target the main 
 	function with cpu_count() concurrent processes.
 	"""
-	database = [set() for _ in range(4)]
-	count = len(os.listdir(DATABASE))
-	half = count // 2
-	quarter = half // 2
-	for c, p in enumerate(os.listdir(DATABASE)):
-		print('\rreading database: ' + str(c + 1) + '/' + str(count), end = ' ')
-		with open(DATABASE + p, 'rb') as file:
-			if c < half:
-				if c < quarter: database[0] = database[0] | set(pickle.load(file))
-				else: database[1] = database[1] | set(pickle.load(file))
-			else:
-				if c < half + quarter: database[2] = database[2] | set(pickle.load(file))
-				else: database[3] = database[3] | set(pickle.load(file))
+	database = load_database(DATABASE)
 	print('DONE')
 	send_telegram_message("Start searching bitcoin @ " + str(datetime.datetime.now()) + ', database size: ' + str(sum(len(i) for i in database)))
 
 	for cpu in range(multiprocessing.cpu_count()):
 		multiprocessing.Process(target = main, args = (database, )).start()
-
